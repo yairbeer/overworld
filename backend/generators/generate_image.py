@@ -24,7 +24,7 @@ from transformers import BitsAndBytesConfig as TransformersBitsAndBytesConfig, T
 _pipeline = None
 
 
-def _load_pipeline() -> FluxPipeline:
+def load_pipeline() -> FluxPipeline:
     """Load and cache the FLUX.1-schnell pipeline with NF4 quantization."""
     global _pipeline
 
@@ -124,7 +124,7 @@ def generate_image(
         generator = torch.Generator(device="cpu").manual_seed(seed)
 
     # Load pipeline (cached after first call)
-    pipe = _load_pipeline()
+    pipe = load_pipeline()
 
     print(f"Generating image for prompt: '{prompt[:80]}{'...' if len(prompt) > 80 else ''}'")
 
