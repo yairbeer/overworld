@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import time
 import asyncio
+import csv
 from pathlib import Path
 from generators import generate_image as gen_image
 
@@ -113,6 +114,61 @@ async def receive_heartbeat():
     global last_seen
     last_seen = time.time()
     return {"status": "alive"}
+
+@app.get("/style-guide/files")
+async def get_style_guide_files():
+    """List all markdown files in the style guide"""
+    style_guide_dir = output_dir / "style_guide"
+    if not style_guide_dir.exists():
+        raise HTTPException(status_code=404, detail="Style guide directory not found")
+    
+    md_files = sorted(style_guide_dir.glob("*.md"))
+    files = []
+    for md_file in md_files:
+        files.append({
+            "name": md_file.stem,
+            "filename": md_file.name,
+            "path": f"/files/style_guide/{md_file.name}"
+        })
+    
+    return {"files": files}
+
+@app.get("/style-guide/file/{filename}")
+async def get_style_guide_file(filename: str):
+    """Get the content of a specific markdown file"""
+    # Prevent directory traversal attacks
+    if ".." in filename or filename.startswith("/"):
+        raise HTTPException(status_code=400, detail="Invalid filename")
+    
+    file_path = output_dir / "style_guide" / filename
+    if not file_path.exists() or not file_path.suffix == ".md":
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        return {"content": content, "filename": filename}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/style-guide/colors")
+async def get_colors():
+    """Get color palette from CSV"""
+    color_file = output_dir / "style_guide" / "04_color_palette.csv"
+    if not color_file.exists():
+        raise HTTPException(status_code=404, detail="Color palette file not found")
+    
+    try:
+        colors = []
+        with open(color_file, 'r', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Strip whitespace from all values
+                cleaned_row = {k: v.strip() if v else v for k, v in row.items()}
+                colors.append(cleaned_row)
+        return {"colors": colors}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

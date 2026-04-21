@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Image as ImageIcon, Music, Send, Loader2, Sparkles } from 'lucide-react';
+import { Image as ImageIcon, Music, Send, Loader2, Sparkles, BookOpen } from 'lucide-react';
+import StyleGuidePanel from './components/StyleGuidePanel';
 
 const App = () => {
   const [activeTab, setActiveTab] = useState('images');
@@ -9,6 +10,12 @@ const App = () => {
 
 useEffect(() => {
   const switchModel = async () => {
+    // Skip switching context for style-guide tab (doesn't need model in VRAM)
+    if (activeTab === 'style-guide') {
+      setResult(null);
+      return;
+    }
+
     try {
       await fetch(`http://localhost:8000/switch-context/${activeTab}`, { method: 'POST' });
       console.log(`Backend swapped to ${activeTab}`);
@@ -85,50 +92,63 @@ const handleGenerate = async () => {
             <Music size={18} />
             <span>Audio</span>
           </button>
-        </div>
-
-        {/* Generator Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-          <div className="mb-6">
-            <label className="block text-sm font-medium text-slate-400 mb-2">
-              {activeTab === 'images' ? 'Visual Prompt (Hex codes supported)' : 'Audio Prompt (Mood, Genre, BPM)'}
-            </label>
-            <textarea 
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all h-32 resize-none"
-              placeholder={activeTab === 'images' ? "e.g. 16-bit sprite, cybernetic knight, #00ffcc..." : "e.g. atmospheric dungeon synth, 80bpm, eerie..."}
-            />
-          </div>
-
           <button 
-            onClick={handleGenerate}
-            disabled={loading || !prompt}
-            className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-all"
+            onClick={() => setActiveTab('style-guide')}
+            className={`flex items-center gap-2 px-6 py-2.5 rounded-lg transition-all ${activeTab === 'style-guide' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
           >
-            {loading ? <Loader2 className="animate-spin" /> : <Send size={18} />}
-            {loading ? 'Processing on GPU...' : 'Generate Artifact'}
+            <BookOpen size={18} />
+            <span>Style Guide</span>
           </button>
         </div>
 
-        {/* Result Area */}
-        <div className="mt-8">
-          {result && (
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">Generated Output</h3>
-              {activeTab === 'images' ? (
-                <img src={result} alt="Generated" className="w-full max-w-md mx-auto rounded-lg border border-slate-700 shadow-lg" />
-              ) : (
-                <div className="bg-slate-950 p-8 rounded-xl border border-slate-800 flex flex-col items-center gap-4">
-                  <div className="w-full h-12 bg-indigo-900/20 rounded-full flex items-center px-4 overflow-hidden">
-                    <div className="h-1 bg-indigo-500 w-full animate-pulse rounded-full" />
-                  </div>
-                  <p className="text-sm text-slate-500 font-mono">bgm_output_v1.wav</p>
+        {activeTab === 'style-guide' ? (
+          <StyleGuidePanel />
+        ) : (
+          <>
+            {/* Generator Card */}
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-slate-400 mb-2">
+                  {activeTab === 'images' ? 'Visual Prompt (Hex codes supported)' : 'Audio Prompt (Mood, Genre, BPM)'}
+                </label>
+                <textarea 
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-4 text-slate-100 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all h-32 resize-none"
+                  placeholder={activeTab === 'images' ? "e.g. 16-bit sprite, cybernetic knight, #00ffcc..." : "e.g. atmospheric dungeon synth, 80bpm, eerie..."}
+                />
+              </div>
+
+              <button 
+                onClick={handleGenerate}
+                disabled={loading || !prompt}
+                className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-500 text-white font-semibold py-4 rounded-xl flex items-center justify-center gap-2 transition-all"
+              >
+                {loading ? <Loader2 className="animate-spin" /> : <Send size={18} />}
+                {loading ? 'Processing on GPU...' : 'Generate Artifact'}
+              </button>
+            </div>
+
+            {/* Result Area */}
+            <div className="mt-8">
+              {result && (
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                  <h3 className="text-sm font-medium text-slate-400 mb-4 uppercase tracking-wider">Generated Output</h3>
+                  {activeTab === 'images' ? (
+                    <img src={result} alt="Generated" className="w-full max-w-md mx-auto rounded-lg border border-slate-700 shadow-lg" />
+                  ) : (
+                    <div className="bg-slate-950 p-8 rounded-xl border border-slate-800 flex flex-col items-center gap-4">
+                      <div className="w-full h-12 bg-indigo-900/20 rounded-full flex items-center px-4 overflow-hidden">
+                        <div className="h-1 bg-indigo-500 w-full animate-pulse rounded-full" />
+                      </div>
+                      <p className="text-sm text-slate-500 font-mono">bgm_output_v1.wav</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          </>
+        )}
       </main>
     </div>
   );
