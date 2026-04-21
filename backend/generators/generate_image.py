@@ -91,25 +91,29 @@ def generate_image(
     num_inference_steps: int = 4,
     guidance_scale: float = 0.0,
     seed: int | None = None,
+    prompt_2: str | None = None,
 ) -> str:
     """
     Generate an image from a text prompt using FLUX.1-schnell with NF4 quantization.
 
     Args:
-        prompt:               Text description of the image to generate.
+        prompt:               Text description (CLIP prompt) for core subject matter.
         output_path:          File path where the image will be saved (e.g. "output/ship.png").
         width:                Image width in pixels. Default 1024.
         height:               Image height in pixels. Default 1024.
         num_inference_steps:  Number of denoising steps. schnell works well with 4.
         guidance_scale:       Classifier-free guidance scale. schnell uses 0.0 (distilled).
         seed:                 Optional random seed for reproducibility.
+        prompt_2:             Optional T5 prompt for scene, style, and detailed context.
+                              If provided, uses dual-prompt generation for more control.
 
     Returns:
         The resolved path to the saved image as a string.
 
     Example:
         >>> path = generate_image(
-        ...     prompt="retro arcade pixel art spaceship, cyan color, dark space background",
+        ...     prompt="retro arcade pixel art spaceship, cyan color",
+        ...     prompt_2="dark space background with stars",
         ...     output_path="assets/sprites/player_ship_concept.png"
         ... )
         >>> print(f"Image saved to: {path}")
@@ -127,10 +131,13 @@ def generate_image(
     pipe = load_pipeline()
 
     print(f"Generating image for prompt: '{prompt[:80]}{'...' if len(prompt) > 80 else ''}'")
+    if prompt_2:
+        print(f"Using T5 prompt: '{prompt_2[:80]}{'...' if len(prompt_2) > 80 else ''}'")
 
     # Run inference
     result = pipe(
         prompt=prompt,
+        prompt_2=prompt_2 if prompt_2 else prompt,
         width=width,
         height=height,
         num_inference_steps=num_inference_steps,
@@ -148,9 +155,11 @@ def generate_image(
 
 # ── Example usage ──────────────────────────────────────────────────────────────
 if __name__ == "__main__":
+    # Example with dual prompts for more control
     generate_image(
-        prompt="small robot drone enemy, angular metal body, red glowing eye, retro arcade pixel art",
-        output_path="output/enemy_drone_concept.png",
+        prompt="small robot drone enemy, angular metal body, red glowing eye",
+        prompt_2="retro arcade pixel art style, dark sci-fi environment",
+        output_path="output/enemy_drone_concept_2.png",
         width=512,
         height=512,
         seed=42,
